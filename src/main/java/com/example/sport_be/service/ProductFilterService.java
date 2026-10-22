@@ -7,6 +7,7 @@ import com.example.sport_be.dto.product.ProductSearchResult;
 import com.example.sport_be.entity.Product;
 import com.example.sport_be.entity.ProductVariant;
 import com.example.sport_be.repository.CategoryRepository;
+import com.example.sport_be.repository.ProductImageRepository;
 import com.example.sport_be.repository.ProductRepository;
 import com.example.sport_be.repository.ProductVariantRepository;
 import jakarta.persistence.criteria.Predicate;
@@ -51,13 +52,16 @@ public class ProductFilterService {
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductImageRepository productImageRepository;
 
     public ProductFilterService(ProductRepository productRepository,
                                  ProductVariantRepository productVariantRepository,
-                                 CategoryRepository categoryRepository) {
+                                 CategoryRepository categoryRepository,
+                                 ProductImageRepository productImageRepository) {
         this.productRepository = productRepository;
         this.productVariantRepository = productVariantRepository;
         this.categoryRepository = categoryRepository;
+        this.productImageRepository = productImageRepository;
     }
 
     /**
@@ -75,7 +79,10 @@ public class ProductFilterService {
         List<Product> products = productRepository.findAll(buildSpecification(criteria), MOST_RECENT_FIRST);
 
         List<ProductResponse> responses = products.stream()
-                .map(product -> ProductResponse.from(product, productVariantRepository.findByProduct_IdAndActiveTrue(product.getId())))
+                .map(product -> ProductResponse.from(
+                        product,
+                        productVariantRepository.findByProduct_IdAndActiveTrue(product.getId()),
+                        productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(product.getId())))
                 .toList();
 
         if (responses.isEmpty() && criteria.hasKeyword()) {
