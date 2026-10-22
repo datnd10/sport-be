@@ -106,7 +106,7 @@ public class ProductService {
             savedVariants.add(createVariant(savedProduct, variantRequest));
         }
 
-        return ProductResponse.from(savedProduct, savedVariants);
+        return ProductResponse.from(savedProduct, savedVariants, List.of());
     }
 
     /**
@@ -135,8 +135,9 @@ public class ProductService {
 
         Product savedProduct = productRepository.save(product);
         List<ProductVariant> variants = productVariantRepository.findByProduct_IdAndActiveTrue(savedProduct.getId());
+        List<ProductImage> images = productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(savedProduct.getId());
 
-        return ProductResponse.from(savedProduct, variants);
+        return ProductResponse.from(savedProduct, variants, images);
     }
 
     /**
@@ -182,7 +183,8 @@ public class ProductService {
         createVariant(product, variantRequest);
 
         List<ProductVariant> variants = productVariantRepository.findByProduct_IdAndActiveTrue(product.getId());
-        return ProductResponse.from(product, variants);
+        List<ProductImage> images = productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(product.getId());
+        return ProductResponse.from(product, variants, images);
     }
 
     /**
@@ -234,7 +236,8 @@ public class ProductService {
         productVariantRepository.save(variant);
 
         List<ProductVariant> variants = productVariantRepository.findByProduct_IdAndActiveTrue(product.getId());
-        return ProductResponse.from(product, variants);
+        List<ProductImage> images = productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(product.getId());
+        return ProductResponse.from(product, variants, images);
     }
 
     /**
@@ -274,7 +277,8 @@ public class ProductService {
         productVariantRepository.save(variant);
 
         List<ProductVariant> variants = productVariantRepository.findByProduct_IdAndActiveTrue(product.getId());
-        return ProductResponse.from(product, variants);
+        List<ProductImage> images = productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(product.getId());
+        return ProductResponse.from(product, variants, images);
     }
 
     /**
@@ -331,7 +335,10 @@ public class ProductService {
         Page<Product> productPage = productRepository.findAll(spec, pageable);
 
         return PageResponse.from(productPage,
-                product -> ProductResponse.from(product, productVariantRepository.findByProduct_IdAndActiveTrue(product.getId())));
+                product -> ProductResponse.from(
+                        product,
+                        productVariantRepository.findByProduct_IdAndActiveTrue(product.getId()),
+                        productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(product.getId())));
     }
 
     /**
