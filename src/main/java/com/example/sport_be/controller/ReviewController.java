@@ -44,8 +44,10 @@ public class ReviewController {
     private static final String CUSTOMER_ONLY_MESSAGE = "Chỉ Khách_Hàng mới có thể gửi Đánh_Giá_Sản_Phẩm.";
 
     private final ReviewService reviewService;
+    private final com.example.sport_be.service.ReviewSubmissionService reviewSubmissionService;
 
-    public ReviewController(ReviewService reviewService) {
+    public ReviewController(ReviewService reviewService, com.example.sport_be.service.ReviewSubmissionService reviewSubmissionService) {
+        this.reviewSubmissionService = reviewSubmissionService;
         this.reviewService = reviewService;
     }
 
@@ -55,7 +57,7 @@ public class ReviewController {
      * the Customer has not purchased this product in a Đơn_Hàng with
      * Trạng_Thái_Đơn_Hàng = Đã_Giao (Requirement 9.1, 9.2).
      */
-    @PostMapping(ApiPaths.Review.BY_PRODUCT_ID)
+    @PostMapping(value = ApiPaths.Review.BY_PRODUCT_ID, consumes = "application/json")
     public ResponseEntity<ReviewResponse> submitReview(
             Authentication authentication,
             @PathVariable UUID id,
@@ -66,7 +68,24 @@ public class ReviewController {
         ProductReview review = reviewService.submit(
                 principal.accountId(), id, request.orderItemId(), request.rating(), request.comment());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(ReviewResponse.from(review));
+        return ResponseEntity.status(HttpStatus.CREATED).body(reviewService.describe(review.getId()));
+    }
+
+    @PostMapping(value = ApiPaths.Review.BY_PRODUCT_ID, consumes = "multipart/form-data")
+    public ResponseEntity<ReviewResponse> submitReviewWithImages(
+            Authentication authentication, @PathVariable UUID id,
+            @Valid @org.springframework.web.bind.annotation.RequestPart("review") CreateReviewRequest request,
+            @org.springframework.web.bind.annotation.RequestPart(value = "images", required = false)
+            java.util.List<org.springframework.web.multipart.MultipartFile> images) {
+        var principal = currentCustomerPrincipal(authentication);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                reviewSubmissionService.submit(principal.accountId(), id, request, images));
+    }
+
+    @GetMapping("/api/account/review-eligibility")
+    public ResponseEntity<java.util.List<com.example.sport_be.dto.review.ReviewEligibilityResponse>> reviewEligibility(
+            Authentication authentication, @RequestParam UUID productId) {
+        return ResponseEntity.ok(reviewService.eligibleItems(currentCustomerPrincipal(authentication).accountId(), productId));
     }
 
     /**

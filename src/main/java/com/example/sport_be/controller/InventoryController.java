@@ -7,6 +7,7 @@ import com.example.sport_be.dto.inventory.InventoryItemResponse;
 import com.example.sport_be.dto.inventory.StockAdjustmentRequest;
 import com.example.sport_be.entity.InventoryHistory;
 import com.example.sport_be.entity.ProductVariant;
+import com.example.sport_be.enums.StockStatus;
 import com.example.sport_be.service.InventoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -50,8 +51,9 @@ public class InventoryController {
     public ResponseEntity<PageResponse<InventoryItemResponse>> listInventory(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String keyword) {
-        return ResponseEntity.ok(inventoryService.listAllPaged(page, size, keyword));
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) StockStatus stockStatus) {
+        return ResponseEntity.ok(inventoryService.listAllPaged(page, size, keyword, stockStatus));
     }
 
     @PutMapping(ApiPaths.Inventory.BY_VARIANT_ID)

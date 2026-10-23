@@ -14,6 +14,7 @@ import com.example.sport_be.enums.PaymentMethod;
 import com.example.sport_be.exception.BusinessRuleException;
 import com.example.sport_be.exception.ValidationException;
 import com.example.sport_be.repository.AccountRepository;
+import com.example.sport_be.repository.CartItemRepository;
 import com.example.sport_be.repository.DiscountCodeRepository;
 import com.example.sport_be.repository.OrderItemRepository;
 import com.example.sport_be.repository.OrderRepository;
@@ -62,6 +63,9 @@ class OrderServiceTest {
     @Mock
     private DiscountService discountService;
 
+    @Mock
+    private CartItemRepository cartItemRepository;
+
     private OrderService orderService;
 
     private ProductVariant variant;
@@ -69,7 +73,7 @@ class OrderServiceTest {
     @BeforeEach
     void setUp() {
         orderService = new OrderService(orderRepository, orderItemRepository, accountRepository,
-                discountCodeRepository, inventoryService, discountService,
+                discountCodeRepository, inventoryService, discountService, cartItemRepository,
                 "Vietcombank", "0123456789", "CONG TY LANANHSPORT", "/static/bank-qr.png");
 
         Category category = new Category("Vợt cầu lông", "vot-cau-long");

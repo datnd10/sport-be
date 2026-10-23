@@ -1,6 +1,7 @@
 package com.example.sport_be.service;
 
 import com.example.sport_be.dto.cart.MergeCartItemRequest;
+import com.example.sport_be.dto.cart.CartResponse;
 import com.example.sport_be.entity.Account;
 import com.example.sport_be.entity.Cart;
 import com.example.sport_be.entity.CartItem;
@@ -31,6 +32,43 @@ import java.util.UUID;
 @Service
 public class CartService {
 
+    // Resolve lazy variant/product data before the transaction closes.
+    @Transactional(readOnly = true)
+    public CartResponse getCartResponse(UUID accountId) {
+        return response(getCart(accountId));
+    }
+
+    @Transactional
+    public CartResponse addItemResponse(UUID accountId, UUID variantId, int quantity) {
+        return response(addItem(accountId, variantId, quantity));
+    }
+
+    @Transactional
+    public CartResponse updateItemResponse(UUID accountId, UUID itemId, int quantity) {
+        return response(updateItemQuantity(accountId, itemId, quantity));
+    }
+
+    @Transactional
+    public CartResponse removeItemResponse(UUID accountId, UUID itemId) {
+        return response(removeItem(accountId, itemId));
+    }
+
+    @Transactional
+    public CartResponse mergeResponse(UUID accountId, List<MergeCartItemRequest> items) {
+        return response(merge(accountId, items));
+    }
+
+    private CartResponse response(Cart cart) {
+        var result = CartResponse.from(cart, getItems(cart));
+        if (result.items().isEmpty()) return result;
+        var ids = result.items().stream().map(com.example.sport_be.dto.cart.CartItemResponse::productId).distinct().toList();
+        java.util.Map<UUID, String> thumbnails = new java.util.HashMap<>();
+        for (var image : productImageRepository.findByProduct_IdInOrderByDisplayOrderAscIdAsc(ids)) {
+            thumbnails.putIfAbsent(image.getProduct().getId(), image.getFilePath());
+        }
+        return new CartResponse(result.id(), result.items().stream().map(item -> item.withImage(thumbnails.get(item.productId()))).toList(), result.totalAmount());
+    }
+
     public static final String OUT_OF_STOCK_ERROR_CODE = "VARIANT_OUT_OF_STOCK";
     public static final String INSUFFICIENT_STOCK_ERROR_CODE = "INSUFFICIENT_STOCK";
     private static final String ACCOUNT_NOT_FOUND_ERROR_CODE = "ACCOUNT_NOT_FOUND";
@@ -38,6 +76,7 @@ public class CartService {
     private static final String CART_ITEM_NOT_FOUND_ERROR_CODE = "CART_ITEM_NOT_FOUND";
     private static final String CART_ITEM_NOT_FOUND_MESSAGE = "Không tìm thấy mục trong Giỏ_Hàng.";
 
+    private final com.example.sport_be.repository.ProductImageRepository productImageRepository;
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final AccountRepository accountRepository;
@@ -46,7 +85,9 @@ public class CartService {
     public CartService(CartRepository cartRepository,
                         CartItemRepository cartItemRepository,
                         AccountRepository accountRepository,
-                        InventoryService inventoryService) {
+                        InventoryService inventoryService,
+                        com.example.sport_be.repository.ProductImageRepository productImageRepository) {
+        this.productImageRepository = productImageRepository;
         this.cartRepository = cartRepository;
         this.cartItemRepository = cartItemRepository;
         this.accountRepository = accountRepository;

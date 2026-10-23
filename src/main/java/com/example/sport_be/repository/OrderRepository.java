@@ -13,6 +13,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
 
     List<Order> findByAccount_Id(UUID accountId);
 
+    long countByStatus(com.example.sport_be.enums.OrderStatus status);
+
     List<Order> findByAccount_Id(UUID accountId, Sort sort);
 
     /**

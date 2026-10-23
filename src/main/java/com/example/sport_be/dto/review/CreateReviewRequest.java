@@ -26,6 +26,7 @@ public record CreateReviewRequest(
         @Max(value = 5, message = "rating phải từ 1 đến 5")
         Integer rating,
 
+        @jakarta.validation.constraints.Size(max = 5000, message = "Nhận xét không được vượt quá 5000 ký tự")
         String comment
 ) {
 }

@@ -34,8 +34,20 @@ public record ProductResponse(
         BigDecimal basePrice,
         boolean active,
         List<ProductVariantResponse> variants,
-        List<ProductImageResponse> images
+        List<ProductImageResponse> images,
+        double averageRating,
+        long reviewCount
 ) {
+
+    public ProductResponse(UUID id, UUID categoryId, String name, String description,
+                           BigDecimal basePrice, boolean active, List<ProductVariantResponse> variants,
+                           List<ProductImageResponse> images) {
+        this(id, categoryId, name, description, basePrice, active, variants, images, 0, 0);
+    }
+
+    public ProductResponse withRating(double rating, long count) {
+        return new ProductResponse(id, categoryId, name, description, basePrice, active, variants, images, rating, count);
+    }
 
     public static ProductResponse from(Product product, List<ProductVariant> variants, List<ProductImage> images) {
         return new ProductResponse(

@@ -28,9 +28,11 @@ import java.util.UUID;
 public class AccountController {
 
     private final AccountService accountService;
+    private final com.example.sport_be.service.PasswordService passwordService;
 
-    public AccountController(AccountService accountService) {
+    public AccountController(AccountService accountService, com.example.sport_be.service.PasswordService passwordService) {
         this.accountService = accountService;
+        this.passwordService = passwordService;
     }
 
     @GetMapping(ApiPaths.Account.ME)
@@ -51,5 +53,12 @@ public class AccountController {
     private UUID currentAccountId(Authentication authentication) {
         JwtPrincipal principal = (JwtPrincipal) authentication.getPrincipal();
         return principal.accountId();
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<Void> changePassword(Authentication authentication,
+            @Valid @RequestBody com.example.sport_be.dto.account.ChangePasswordRequest request) {
+        passwordService.change(currentAccountId(authentication), request);
+        return ResponseEntity.noContent().build();
     }
 }

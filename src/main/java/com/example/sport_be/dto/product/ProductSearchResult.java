@@ -18,8 +18,16 @@ import java.util.List;
  */
 public record ProductSearchResult(
         List<ProductResponse> products,
-        List<CategoryResponse> suggestedCategories
+        List<CategoryResponse> suggestedCategories,
+        long totalElements,
+        int totalPages,
+        int page,
+        int size
 ) {
+
+    public ProductSearchResult(List<ProductResponse> products, List<CategoryResponse> suggestedCategories) {
+        this(products, suggestedCategories, products.size(), products.isEmpty() ? 0 : 1, 0, products.size());
+    }
 
     public static ProductSearchResult withProducts(List<ProductResponse> products) {
         return new ProductSearchResult(products, List.of());

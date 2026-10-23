@@ -14,6 +14,7 @@ import com.example.sport_be.security.JwtPrincipal;
 import com.example.sport_be.service.OrderQueryService;
 import com.example.sport_be.service.OrderService;
 import com.example.sport_be.service.OrderStatusService;
+import com.example.sport_be.service.OrderViewService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,13 +53,16 @@ public class OrderController {
     private final OrderQueryService orderQueryService;
     private final OrderStatusService orderStatusService;
     private final OrderItemRepository orderItemRepository;
+    private final OrderViewService orderViews;
 
     public OrderController(OrderService orderService, OrderQueryService orderQueryService,
-                            OrderStatusService orderStatusService, OrderItemRepository orderItemRepository) {
+                            OrderStatusService orderStatusService, OrderItemRepository orderItemRepository,
+                            OrderViewService orderViews) {
         this.orderService = orderService;
         this.orderQueryService = orderQueryService;
         this.orderStatusService = orderStatusService;
         this.orderItemRepository = orderItemRepository;
+        this.orderViews = orderViews;
     }
 
     /**
@@ -75,7 +79,7 @@ public class OrderController {
         UUID accountId = currentAccountIdOrNull(authentication);
         OrderService.OrderCreationResult result = orderService.createOrder(accountId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(OrderResponse.from(result.order(), result.items(), result.bankTransferInfo()));
+                .body(orderViews.detail(result.order().getId(), accountId, isAdmin(authentication)));
     }
 
     /**
@@ -86,9 +90,7 @@ public class OrderController {
     @GetMapping(ApiPaths.Order.BASE)
     public ResponseEntity<List<OrderSummaryResponse>> listMyOrders(Authentication authentication) {
         UUID accountId = currentAccountId(authentication);
-        List<OrderSummaryResponse> orders = orderQueryService.getOrdersForAccount(accountId).stream()
-                .map(OrderSummaryResponse::from)
-                .toList();
+        List<OrderSummaryResponse> orders = orderViews.history(accountId);
         return ResponseEntity.ok(orders);
     }
 
@@ -105,8 +107,7 @@ public class OrderController {
     ) {
         UUID accountId = currentAccountIdOrNull(authentication);
         boolean isAdmin = isAdmin(authentication);
-        OrderQueryService.OrderDetail detail = orderQueryService.getOrderDetail(id, accountId, isAdmin);
-        return ResponseEntity.ok(OrderResponse.from(detail.order(), detail.items()));
+        return ResponseEntity.ok(orderViews.detail(id, accountId, isAdmin));
     }
 
     /**
@@ -163,7 +164,7 @@ public class OrderController {
             @Valid @RequestBody UpdateOrderStatusRequest request
     ) {
         Order order = orderStatusService.transition(id, request.status());
-        return ResponseEntity.ok(OrderResponse.from(order, orderItemRepository.findByOrder_Id(order.getId())));
+        return ResponseEntity.ok(orderViews.detail(order.getId(), null, true));
     }
 
     private UUID currentAccountIdOrNull(Authentication authentication) {

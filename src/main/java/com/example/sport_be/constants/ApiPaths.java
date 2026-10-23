@@ -112,6 +112,7 @@ public final class ApiPaths {
         public static final String ADMIN_CREATE = "/api/admin/discount-codes";
         public static final String ADMIN_DEACTIVATE = "/api/admin/discount-codes/{id}/deactivate";
         public static final String PUBLIC_VALIDATE = "/api/discount-codes/validate";
+        public static final String AVAILABLE = "/api/discount-codes/available";
     }
 
     /** Endpoints for Đơn_Hàng (Order) records. */

@@ -1,4 +1,5 @@
 package com.example.sport_be.service;
+import com.example.sport_be.enums.StockStatus;
 
 import com.example.sport_be.dto.common.PageResponse;
 import com.example.sport_be.dto.inventory.InventoryItemResponse;
@@ -178,8 +179,26 @@ public class InventoryService {
      */
     @Transactional(readOnly = true)
     public PageResponse<InventoryItemResponse> listAllPaged(int page, int size, String keyword) {
+        return listAllPaged(page, size, keyword, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<InventoryItemResponse> listAllPaged(int page, int size, String keyword, StockStatus stockStatus) {
         Pageable pageable = PageRequest.of(page, size, ADMIN_LIST_DEFAULT_SORT);
         Specification<ProductVariant> spec = buildAdminListSpecification(keyword);
+
+        if (stockStatus != null) {
+            spec = spec.and((root, query, cb) -> {
+                var quantity = root.<Integer>get("stockQuantity");
+                var threshold = root.<Integer>get("lowStockThreshold");
+                var stock = switch (stockStatus) {
+                    case OUT_OF_STOCK -> cb.equal(quantity, 0);
+                    case LOW_STOCK -> cb.and(cb.greaterThan(quantity, 0), cb.lessThan(quantity, threshold));
+                    case IN_STOCK -> cb.and(cb.greaterThan(quantity, 0), cb.greaterThanOrEqualTo(quantity, threshold));
+                };
+                return cb.and(cb.isTrue(root.get("active")), cb.isTrue(root.get("product").get("active")), stock);
+            });
+        }
 
         Page<ProductVariant> variantPage = productVariantRepository.findAll(spec, pageable);
 

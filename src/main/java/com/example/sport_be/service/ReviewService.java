@@ -211,6 +211,20 @@ public class ReviewService {
         return review;
     }
 
+    @Transactional(readOnly = true)
+    public ReviewResponse describe(UUID reviewId) {
+        return ReviewResponse.from(productReviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException(REVIEW_NOT_FOUND_MESSAGE)));
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.example.sport_be.dto.review.ReviewEligibilityResponse> eligibleItems(UUID accountId, UUID productId) {
+        return orderItemRepository.findEligibleForReview(accountId, productId, OrderStatus.DELIVERED).stream()
+                .filter(item -> productReviewRepository.findByOrderItem_Id(item.getId()).isEmpty())
+                .map(item -> new com.example.sport_be.dto.review.ReviewEligibilityResponse(
+                        item.getId(), item.getOrder().getOrderCode(), item.getVariant().getAttributes())).toList();
+    }
+
     private OrderItem selectOrderItem(List<OrderItem> eligibleItems, UUID requestedOrderItemId) {
         if (eligibleItems.isEmpty()) {
             throw new BusinessRuleException(NOT_ELIGIBLE_ERROR_CODE, NOT_ELIGIBLE_MESSAGE);

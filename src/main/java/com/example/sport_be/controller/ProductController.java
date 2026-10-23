@@ -11,6 +11,7 @@ import com.example.sport_be.dto.product.ProductResponse;
 import com.example.sport_be.dto.product.ProductSearchResult;
 import com.example.sport_be.dto.product.ProductUpdateRequest;
 import com.example.sport_be.dto.product.UpdateProductVariantRequest;
+import com.example.sport_be.exception.ValidationException;
 import com.example.sport_be.service.ProductFilterService;
 import com.example.sport_be.service.ProductImageService;
 import com.example.sport_be.service.ProductService;
@@ -48,7 +49,7 @@ public class ProductController {
      * other query parameter present on {@code GET /api/products} is
      * treated as a Biến_Thể_Sản_Phẩm attribute filter (e.g. {@code size=42}).
      */
-    private static final Set<String> RESERVED_FILTER_PARAMS = Set.of("categoryId", "keyword", "minPrice", "maxPrice");
+    private static final Set<String> RESERVED_FILTER_PARAMS = Set.of("categoryId", "keyword", "minPrice", "maxPrice", "minRating", "sort", "page", "size");
 
     private final ProductService productService;
     private final ProductImageService productImageService;
@@ -77,12 +78,28 @@ public class ProductController {
                                                               @RequestParam(required = false) String keyword,
                                                               @RequestParam(required = false) BigDecimal minPrice,
                                                               @RequestParam(required = false) BigDecimal maxPrice,
+                                                              @RequestParam(required = false) Double minRating,
+                                                              @RequestParam(defaultValue = "newest") String sort,
+                                                              @RequestParam(required = false) Integer page,
+                                                              @RequestParam(required = false) Integer size,
                                                               @RequestParam Map<String, String> allParams) {
+        if ((minRating != null && (!Double.isFinite(minRating) || minRating < 1 || minRating > 5))
+                || (minPrice != null && minPrice.signum() < 0)
+                || (maxPrice != null && maxPrice.signum() < 0)
+                || (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0)
+                || !Set.of("newest", "price_asc", "price_desc", "rating_desc").contains(sort)) {
+            throw new ValidationException("Bộ lọc không hợp lệ", List.of());
+        }
         Map<String, String> variantAttributes = new LinkedHashMap<>(allParams);
         RESERVED_FILTER_PARAMS.forEach(variantAttributes::remove);
 
-        ProductFilterCriteria criteria = new ProductFilterCriteria(keyword, categoryId, minPrice, maxPrice, variantAttributes);
-        ProductSearchResult result = productFilterService.search(criteria);
+        ProductFilterCriteria criteria = new ProductFilterCriteria(keyword, categoryId, minPrice, maxPrice, variantAttributes, minRating, sort);
+        if ((page != null && page < 0) || (size != null && (size < 1 || size > 100))) {
+            throw new ValidationException("Phân trang không hợp lệ", List.of());
+        }
+        ProductSearchResult result = page == null && size == null
+                ? productFilterService.search(criteria)
+                : productFilterService.searchPaged(criteria, page == null ? 0 : page, size == null ? 12 : size);
         return ResponseEntity.ok(result);
     }
 

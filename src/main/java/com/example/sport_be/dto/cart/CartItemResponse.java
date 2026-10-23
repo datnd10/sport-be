@@ -30,8 +30,14 @@ public record CartItemResponse(
         BigDecimal unitPrice,
         int quantity,
         int stockQuantity,
-        BigDecimal lineTotal
+        BigDecimal lineTotal,
+        UUID productId,
+        String imagePath
 ) {
+
+    public CartItemResponse withImage(String path) {
+        return new CartItemResponse(id, variantId, productName, sku, attributes, unitPrice, quantity, stockQuantity, lineTotal, productId, path);
+    }
 
     public static CartItemResponse from(CartItem item) {
         ProductVariant variant = item.getVariant();
@@ -47,7 +53,9 @@ public record CartItemResponse(
                 unitPrice,
                 item.getQuantity(),
                 variant.getStockQuantity(),
-                lineTotal
+                lineTotal,
+                variant.getProduct().getId(),
+                null
         );
     }
 }

@@ -9,6 +9,7 @@ import com.example.sport_be.entity.ProductVariant;
 import com.example.sport_be.repository.CategoryRepository;
 import com.example.sport_be.repository.ProductImageRepository;
 import com.example.sport_be.repository.ProductRepository;
+import com.example.sport_be.repository.ProductReviewRepository;
 import com.example.sport_be.repository.ProductVariantRepository;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Subquery;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -49,6 +52,7 @@ public class ProductFilterService {
      */
     private static final Sort MOST_RECENT_FIRST = Sort.by(Sort.Direction.DESC, "createdAt");
 
+    private final ProductReviewRepository reviewRepository;
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
     private final CategoryRepository categoryRepository;
@@ -57,7 +61,9 @@ public class ProductFilterService {
     public ProductFilterService(ProductRepository productRepository,
                                  ProductVariantRepository productVariantRepository,
                                  CategoryRepository categoryRepository,
-                                 ProductImageRepository productImageRepository) {
+                                 ProductImageRepository productImageRepository,
+                                 ProductReviewRepository reviewRepository) {
+        this.reviewRepository = reviewRepository;
         this.productRepository = productRepository;
         this.productVariantRepository = productVariantRepository;
         this.categoryRepository = categoryRepository;
@@ -78,17 +84,86 @@ public class ProductFilterService {
     public ProductSearchResult search(ProductFilterCriteria criteria) {
         List<Product> products = productRepository.findAll(buildSpecification(criteria), MOST_RECENT_FIRST);
 
+        Map<UUID, Object[]> ratings = new HashMap<>();
+        if (!products.isEmpty()) {
+            for (Object[] row : reviewRepository.summarizeRatings(products.stream().map(Product::getId).toList())) {
+                ratings.put((UUID) row[0], row);
+            }
+        }
+        Comparator<ProductResponse> ordering = switch (criteria.sort() == null ? "newest" : criteria.sort()) {
+            case "price_asc" -> Comparator.comparing(ProductResponse::basePrice);
+            case "price_desc" -> Comparator.comparing(ProductResponse::basePrice).reversed();
+            case "rating_desc" -> Comparator.comparingDouble(ProductResponse::averageRating).reversed();
+            default -> (a, b) -> 0;
+        };
         List<ProductResponse> responses = products.stream()
                 .map(product -> ProductResponse.from(
                         product,
                         productVariantRepository.findByProduct_IdAndActiveTrue(product.getId()),
                         productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(product.getId())))
+                .map(response -> {
+                    Object[] summary = ratings.get(response.id());
+                    return summary == null ? response : response.withRating(((Number) summary[1]).doubleValue(), ((Number) summary[2]).longValue());
+                })
+                .filter(response -> criteria.minRating() == null || (response.reviewCount() > 0 && response.averageRating() >= criteria.minRating()))
+                .sorted(ordering)
                 .toList();
 
         if (responses.isEmpty() && criteria.hasKeyword()) {
             return ProductSearchResult.noResults(getPopularCategories());
         }
         return ProductSearchResult.withProducts(responses);
+    }
+
+    /** Filters, orders and pages in the database before loading card details. */
+    @Transactional(readOnly = true)
+    public ProductSearchResult searchPaged(ProductFilterCriteria criteria, int page, int size) {
+        Specification<Product> spec = buildSpecification(criteria);
+        if (criteria.minRating() != null) {
+            spec = spec.and((root, query, cb) -> cb.ge(averageRating(root, query, cb), criteria.minRating()));
+        }
+        spec = spec.and((root, query, cb) -> {
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                var primary = switch (criteria.sort() == null ? "newest" : criteria.sort()) {
+                    case "price_asc" -> cb.asc(root.get("basePrice"));
+                    case "price_desc" -> cb.desc(root.get("basePrice"));
+                    case "rating_desc" -> cb.desc(averageRating(root, query, cb));
+                    default -> cb.desc(root.get("createdAt"));
+                };
+                query.orderBy(primary, cb.desc(root.get("createdAt")), cb.asc(root.get("id")));
+            }
+            return cb.conjunction();
+        });
+        var result = productRepository.findAll(spec, PageRequest.of(page, size));
+        if (page > 0 && result.getTotalPages() <= page) {
+            result = productRepository.findAll(spec, PageRequest.of(Math.max(0, result.getTotalPages() - 1), size));
+        }
+        Map<UUID, Object[]> ratings = new HashMap<>();
+        if (!result.isEmpty()) {
+            for (Object[] row : reviewRepository.summarizeRatings(result.getContent().stream().map(Product::getId).toList())) {
+                ratings.put((UUID) row[0], row);
+            }
+        }
+        var responses = result.getContent().stream().map(product -> {
+            var response = ProductResponse.from(product,
+                    productVariantRepository.findByProduct_IdAndActiveTrue(product.getId()),
+                    productImageRepository.findByProduct_IdOrderByDisplayOrderAsc(product.getId()));
+            var summary = ratings.get(product.getId());
+            return summary == null ? response : response.withRating(((Number) summary[1]).doubleValue(), ((Number) summary[2]).longValue());
+        }).toList();
+        return new ProductSearchResult(responses,
+                result.getTotalElements() == 0 && criteria.hasKeyword() ? getPopularCategories() : List.of(),
+                result.getTotalElements(), result.getTotalPages(), result.getNumber(), size);
+    }
+
+    private jakarta.persistence.criteria.Expression<Double> averageRating(
+            jakarta.persistence.criteria.Root<Product> root, jakarta.persistence.criteria.CriteriaQuery<?> query,
+            jakarta.persistence.criteria.CriteriaBuilder cb) {
+        Subquery<Double> average = query.subquery(Double.class);
+        var review = average.from(com.example.sport_be.entity.ProductReview.class);
+        average.select(cb.avg(review.get("rating")));
+        average.where(cb.equal(review.get("product"), root), cb.isFalse(review.get("hidden")));
+        return cb.coalesce(average, 0.0);
     }
 
     /**
@@ -150,6 +225,7 @@ public class ProductFilterService {
 
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(variant.get("product"), root));
+            predicates.add(cb.isTrue(variant.get("active")));
 
             if (criteria.minPrice() != null) {
                 predicates.add(cb.ge(variant.get("price"), criteria.minPrice()));
