@@ -68,24 +68,12 @@ public class SecurityConfig {
             "/api/categories/**",
             "/api/products",
             "/api/products/**",
-            "/api/discount-codes/validate",
             "/uploads/**",
             "/api/health"
     };
 
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/auth/**"
-    };
-
-    /**
-     * Public (unauthenticated) POST endpoints. {@code POST /api/orders}
-     * must allow Khách_Hàng vãng lai (guests) to place an order, per the
-     * Customer/Guest role listed for this endpoint in design.md;
-     * {@code OrderController} still associates the order with thethe
-     * caller's Account when a valid JWT is present.
-     */
-    private static final String[] PUBLIC_POST_ENDPOINTS = {
-            "/api/orders"
     };
 
     /**
@@ -160,7 +148,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET, PUBLIC_GET_ENDPOINTS).permitAll()
-                        .requestMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -7,6 +7,7 @@ import com.example.sport_be.enums.PaymentMethod;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.List;
 
 /**
  * Lightweight summary representation of an {@link Order}, used for list
@@ -36,8 +37,19 @@ public record OrderSummaryResponse(
         BigDecimal totalAmount,
         String accountEmail,
         String accountFullName,
-        Instant createdAt
+        Instant createdAt,
+        List<OrderItemResponse> items
 ) {
+
+    public OrderSummaryResponse(UUID id, String orderCode, OrderStatus status, PaymentMethod paymentMethod,
+                                BigDecimal totalAmount, String accountEmail, String accountFullName, Instant createdAt) {
+        this(id, orderCode, status, paymentMethod, totalAmount, accountEmail, accountFullName, createdAt, List.of());
+    }
+
+    public OrderSummaryResponse withItems(List<OrderItemResponse> items) {
+        return new OrderSummaryResponse(id, orderCode, status, paymentMethod, totalAmount,
+                accountEmail, accountFullName, createdAt, items);
+    }
 
     public static OrderSummaryResponse from(Order order) {
         boolean hasAccount = order.getAccount() != null;

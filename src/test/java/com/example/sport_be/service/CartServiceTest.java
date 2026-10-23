@@ -52,7 +52,8 @@ class CartServiceTest {
 
     @BeforeEach
     void setUp() {
-        cartService = new CartService(cartRepository, cartItemRepository, accountRepository, inventoryService);
+        cartService = new CartService(cartRepository, cartItemRepository, accountRepository, inventoryService,
+                org.mockito.Mockito.mock(com.example.sport_be.repository.ProductImageRepository.class));
 
         account = new Account("user@example.com", "hashed-password", Role.CUSTOMER);
         cart = new Cart(account);

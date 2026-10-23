@@ -69,6 +69,12 @@ public class ProductReview {
     @Setter(AccessLevel.NONE)
     private Instant createdAt;
 
+    @jakarta.persistence.OneToMany(mappedBy = "review", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    @jakarta.persistence.OrderBy("displayOrder ASC, id ASC")
+    @org.hibernate.annotations.BatchSize(size = 50)
+    @Setter(AccessLevel.NONE)
+    private java.util.List<ProductReviewImage> images = new java.util.ArrayList<>();
+
     public ProductReview(Product product, Account account, OrderItem orderItem, int rating) {
         this.product = product;
         this.account = account;

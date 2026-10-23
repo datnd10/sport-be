@@ -33,7 +33,8 @@ public record ReviewResponse(
         int rating,
         String comment,
         boolean hidden,
-        Instant createdAt
+        Instant createdAt,
+        java.util.List<ReviewImageResponse> images
 ) {
 
     public static ReviewResponse from(ProductReview review) {
@@ -46,7 +47,8 @@ public record ReviewResponse(
                 review.getRating(),
                 review.getComment(),
                 review.isHidden(),
-                review.getCreatedAt()
+                review.getCreatedAt(),
+                review.getImages().stream().map(ReviewImageResponse::from).toList()
         );
     }
 }

@@ -14,6 +14,7 @@ import com.example.sport_be.exception.FieldError;
 import com.example.sport_be.exception.ResourceNotFoundException;
 import com.example.sport_be.exception.ValidationException;
 import com.example.sport_be.repository.AccountRepository;
+import com.example.sport_be.repository.CartItemRepository;
 import com.example.sport_be.repository.DiscountCodeRepository;
 import com.example.sport_be.repository.OrderItemRepository;
 import com.example.sport_be.repository.OrderRepository;
@@ -54,6 +55,7 @@ public class OrderService {
     private final DiscountCodeRepository discountCodeRepository;
     private final InventoryService inventoryService;
     private final DiscountService discountService;
+    private final CartItemRepository cartItemRepository;
     private final String shopBankName;
     private final String shopBankAccountNumber;
     private final String shopBankAccountHolder;
@@ -65,6 +67,7 @@ public class OrderService {
                          DiscountCodeRepository discountCodeRepository,
                          InventoryService inventoryService,
                          DiscountService discountService,
+                         CartItemRepository cartItemRepository,
                          @Value("${shop.bank.bank-name}") String shopBankName,
                          @Value("${shop.bank.account-number}") String shopBankAccountNumber,
                          @Value("${shop.bank.account-holder}") String shopBankAccountHolder,
@@ -75,6 +78,7 @@ public class OrderService {
         this.discountCodeRepository = discountCodeRepository;
         this.inventoryService = inventoryService;
         this.discountService = discountService;
+        this.cartItemRepository = cartItemRepository;
         this.shopBankName = shopBankName;
         this.shopBankAccountNumber = shopBankAccountNumber;
         this.shopBankAccountHolder = shopBankAccountHolder;
@@ -149,6 +153,11 @@ public class OrderService {
         BankTransferInfoResponse bankTransferInfo = order.getPaymentMethod() == PaymentMethod.BANK_TRANSFER
                 ? buildBankTransferInfo()
                 : null;
+
+        if (accountId != null) {
+            cartItemRepository.deletePurchasedItems(accountId,
+                    request.items().stream().map(OrderItemRequest::variantId).distinct().toList());
+        }
 
         return new OrderCreationResult(order, orderItems, bankTransferInfo);
     }

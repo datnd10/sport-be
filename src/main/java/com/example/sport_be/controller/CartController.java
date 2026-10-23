@@ -5,8 +5,6 @@ import com.example.sport_be.dto.cart.AddCartItemRequest;
 import com.example.sport_be.dto.cart.CartResponse;
 import com.example.sport_be.dto.cart.MergeCartItemRequest;
 import com.example.sport_be.dto.cart.UpdateCartItemRequest;
-import com.example.sport_be.entity.Cart;
-import com.example.sport_be.entity.CartItem;
 import com.example.sport_be.security.JwtPrincipal;
 import com.example.sport_be.service.CartService;
 import jakarta.validation.Valid;
@@ -48,9 +46,7 @@ public class CartController {
             @Valid @RequestBody AddCartItemRequest request
     ) {
         UUID accountId = currentAccountId(authentication);
-        Cart cart = cartService.addItem(accountId, request.variantId(), request.quantity());
-        List<CartItem> items = cartService.getItems(cart);
-        return ResponseEntity.ok(CartResponse.from(cart, items));
+        return ResponseEntity.ok(cartService.addItemResponse(accountId, request.variantId(), request.quantity()));
     }
 
     /**
@@ -66,9 +62,7 @@ public class CartController {
             @Valid @RequestBody UpdateCartItemRequest request
     ) {
         UUID accountId = currentAccountId(authentication);
-        Cart cart = cartService.updateItemQuantity(accountId, itemId, request.quantity());
-        List<CartItem> items = cartService.getItems(cart);
-        return ResponseEntity.ok(CartResponse.from(cart, items));
+        return ResponseEntity.ok(cartService.updateItemResponse(accountId, itemId, request.quantity()));
     }
 
     /**
@@ -81,9 +75,7 @@ public class CartController {
             @PathVariable UUID itemId
     ) {
         UUID accountId = currentAccountId(authentication);
-        Cart cart = cartService.removeItem(accountId, itemId);
-        List<CartItem> items = cartService.getItems(cart);
-        return ResponseEntity.ok(CartResponse.from(cart, items));
+        return ResponseEntity.ok(cartService.removeItemResponse(accountId, itemId));
     }
 
     /**
@@ -100,9 +92,7 @@ public class CartController {
             @Valid @RequestBody List<MergeCartItemRequest> localItems
     ) {
         UUID accountId = currentAccountId(authentication);
-        Cart cart = cartService.merge(accountId, localItems);
-        List<CartItem> items = cartService.getItems(cart);
-        return ResponseEntity.ok(CartResponse.from(cart, items));
+        return ResponseEntity.ok(cartService.mergeResponse(accountId, localItems));
     }
 
     /**
@@ -111,9 +101,7 @@ public class CartController {
     @GetMapping(ApiPaths.Cart.BASE)
     public ResponseEntity<CartResponse> getCart(Authentication authentication) {
         UUID accountId = currentAccountId(authentication);
-        Cart cart = cartService.getCart(accountId);
-        List<CartItem> items = cartService.getItems(cart);
-        return ResponseEntity.ok(CartResponse.from(cart, items));
+        return ResponseEntity.ok(cartService.getCartResponse(accountId));
     }
 
     private UUID currentAccountId(Authentication authentication) {

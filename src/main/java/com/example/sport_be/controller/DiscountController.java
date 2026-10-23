@@ -5,6 +5,8 @@ import com.example.sport_be.dto.common.PageResponse;
 import com.example.sport_be.dto.discount.DiscountCodeCreateRequest;
 import com.example.sport_be.dto.discount.DiscountCodeResponse;
 import com.example.sport_be.dto.discount.DiscountValidationResponse;
+import com.example.sport_be.dto.discount.AvailableDiscountResponse;
+import java.util.List;
 import com.example.sport_be.entity.DiscountCode;
 import com.example.sport_be.service.DiscountService;
 import jakarta.validation.Valid;
@@ -34,6 +36,12 @@ public class DiscountController {
 
     public DiscountController(DiscountService discountService) {
         this.discountService = discountService;
+    }
+
+    /** Available checkout offers for authenticated customers. Validation is repeated on application/order creation. */
+    @GetMapping(ApiPaths.Discount.AVAILABLE)
+    public ResponseEntity<List<AvailableDiscountResponse>> availableDiscountCodes() {
+        return ResponseEntity.ok(discountService.findAvailable());
     }
 
     /**

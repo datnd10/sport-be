@@ -59,7 +59,7 @@ public class DashboardService {
     private final ProductVariantRepository productVariantRepository;
     private final OrderItemRepository orderItemRepository;
     private final AccountRepository accountRepository;
-    private ZoneId zoneId = ZoneId.systemDefault();
+    private ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
 
     public DashboardService(OrderRepository orderRepository, ProductVariantRepository productVariantRepository,
                              OrderItemRepository orderItemRepository, AccountRepository accountRepository) {

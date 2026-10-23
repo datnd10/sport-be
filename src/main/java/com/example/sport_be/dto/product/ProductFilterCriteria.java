@@ -34,8 +34,15 @@ public record ProductFilterCriteria(
         UUID categoryId,
         BigDecimal minPrice,
         BigDecimal maxPrice,
-        Map<String, String> variantAttributes
+        Map<String, String> variantAttributes,
+        Double minRating,
+        String sort
 ) {
+
+    public ProductFilterCriteria(String keyword, UUID categoryId, BigDecimal minPrice,
+                                 BigDecimal maxPrice, Map<String, String> variantAttributes) {
+        this(keyword, categoryId, minPrice, maxPrice, variantAttributes, null, null);
+    }
 
     public static ProductFilterCriteria empty() {
         return new ProductFilterCriteria(null, null, null, null, Map.of());

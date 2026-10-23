@@ -8,6 +8,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -40,6 +41,17 @@ class SecurityConfigTest {
                             .as("GET /uploads/** without a token must not be rejected as unauthorized")
                             .isNotEqualTo(401);
                 });
+    }
+
+    @Test
+    void guestsCannotCreateOrdersOrAccessShoppingActions() throws Exception {
+        mockMvc.perform(post("/api/orders").contentType("application/json").content("{}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/cart")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/discount-codes/validate").param("code", "DEMO"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/categories")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/products")).andExpect(status().isOk());
     }
 
     @Test

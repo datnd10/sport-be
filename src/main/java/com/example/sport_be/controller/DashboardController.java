@@ -6,6 +6,9 @@ import com.example.sport_be.dto.dashboard.DailyRevenueResponse;
 import com.example.sport_be.dto.dashboard.DashboardSummaryResponse;
 import com.example.sport_be.dto.dashboard.TopProductResponse;
 import com.example.sport_be.service.DashboardService;
+import com.example.sport_be.service.DashboardOverviewService;
+import com.example.sport_be.dto.dashboard.DashboardOverviewResponse;
+import java.time.LocalDate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -23,9 +26,17 @@ import java.util.List;
 public class DashboardController {
 
     private final DashboardService dashboardService;
+    private final DashboardOverviewService overviewService;
 
-    public DashboardController(DashboardService dashboardService) {
+    public DashboardController(DashboardService dashboardService, DashboardOverviewService overviewService) {
         this.dashboardService = dashboardService;
+        this.overviewService = overviewService;
+    }
+
+    @GetMapping("/api/admin/dashboard/overview")
+    public ResponseEntity<DashboardOverviewResponse> overview(@RequestParam(defaultValue = "7days") String range,
+            @RequestParam(required = false) LocalDate from, @RequestParam(required = false) LocalDate to) {
+        return ResponseEntity.ok(overviewService.get(range, from, to));
     }
 
     @GetMapping(ApiPaths.Dashboard.SUMMARY)

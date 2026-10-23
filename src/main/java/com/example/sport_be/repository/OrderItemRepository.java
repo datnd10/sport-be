@@ -3,6 +3,7 @@ package com.example.sport_be.repository;
 import com.example.sport_be.entity.OrderItem;
 import com.example.sport_be.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,7 +13,11 @@ import java.util.UUID;
 
 public interface OrderItemRepository extends JpaRepository<OrderItem, UUID> {
 
+    @EntityGraph(attributePaths = {"variant", "variant.product", "variant.product.category"})
     List<OrderItem> findByOrder_Id(UUID orderId);
+
+    @EntityGraph(attributePaths = {"variant", "variant.product", "variant.product.category"})
+    List<OrderItem> findByOrder_IdIn(List<UUID> orderIds);
 
     /**
      * Finds an {@link OrderItem} that makes {@code accountId} eligible to

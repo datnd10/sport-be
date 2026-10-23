@@ -20,15 +20,35 @@ public record OrderItemResponse(
         UUID variantId,
         String productNameSnapshot,
         BigDecimal unitPriceSnapshot,
-        int quantity
+        int quantity,
+        UUID id,
+        UUID productId,
+        String productName,
+        String sku,
+        String attributes,
+        BigDecimal unitPrice,
+        BigDecimal lineTotal,
+        String imagePath
 ) {
 
     public static OrderItemResponse from(OrderItem orderItem) {
+        return from(orderItem, null);
+    }
+
+    public static OrderItemResponse from(OrderItem orderItem, String imagePath) {
         return new OrderItemResponse(
                 orderItem.getVariant().getId(),
                 orderItem.getProductNameSnapshot(),
                 orderItem.getUnitPriceSnapshot(),
-                orderItem.getQuantity()
+                orderItem.getQuantity(),
+                orderItem.getId(),
+                orderItem.getVariant().getProduct().getId(),
+                orderItem.getProductNameSnapshot(),
+                orderItem.getVariant().getSku(),
+                orderItem.getVariant().getAttributes(),
+                orderItem.getUnitPriceSnapshot(),
+                orderItem.getUnitPriceSnapshot().multiply(BigDecimal.valueOf(orderItem.getQuantity())),
+                imagePath
         );
     }
 }

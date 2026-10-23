@@ -3,6 +3,7 @@ package com.example.sport_be.service;
 import com.example.sport_be.dto.common.PageResponse;
 import com.example.sport_be.dto.discount.DiscountCodeCreateRequest;
 import com.example.sport_be.dto.discount.DiscountCodeResponse;
+import com.example.sport_be.dto.discount.AvailableDiscountResponse;
 import com.example.sport_be.entity.DiscountCode;
 import com.example.sport_be.exception.BusinessRuleException;
 import com.example.sport_be.exception.ConflictException;
@@ -39,6 +40,12 @@ public class DiscountService {
 
     public DiscountService(DiscountCodeRepository discountCodeRepository) {
         this.discountCodeRepository = discountCodeRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AvailableDiscountResponse> findAvailable() {
+        return discountCodeRepository.findAvailable(Instant.now()).stream()
+                .map(AvailableDiscountResponse::from).toList();
     }
 
     /**
